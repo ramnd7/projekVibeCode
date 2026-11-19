@@ -2,7 +2,7 @@
 
 > Spesifikasi kebutuhan perangkat lunak (SRS) untuk **MaruemGear**, sistem penyewaan gear hiking berbasis web untuk latihan 1 hari.
 > Status: **Disetujui untuk implementasi**. Dokumen ini **belum berisi kode aplikasi**.
-> Hubungan dengan dokumen lain: `ui.md` mengatur tampilan; dokumen ini menang untuk **aturan bisnis, data, dan kriteria penerimaan fungsional**. Jika keduanya bertentangan, ikuti dokumen ini lalu sinkronkan `ui.md`.
+> Hubungan dengan dokumen lain: `UI.md` mengatur tampilan; dokumen ini menang untuk **aturan bisnis, data, dan kriteria penerimaan fungsional**. Jika keduanya bertentangan, ikuti dokumen ini lalu sinkronkan `UI.md`.
 
 ---
 
