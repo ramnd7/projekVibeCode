@@ -112,7 +112,6 @@ label { display: inline-block; font-weight: 600; margin-bottom: 4px; }
 .hero h1 { max-width: 640px; }
 .hero-copy p { color: var(--muted); }
 .kicker { color: var(--leaf-900); font-size: 12px; font-weight: 700; letter-spacing: .08em; }
-.cara-sewa { margin-top: 16px; font-size: 14px; color: var(--leaf-900); }
 .panel-jadwal { padding: 16px; background: var(--surface); border: 1px solid var(--divider); border-radius: var(--radius); }
 .panel-judul { font-size: 18px; }
 .baris-jadwal { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; margin-bottom: 10px; }
@@ -214,6 +213,16 @@ th, td { padding: 8px; border-bottom: 1px solid var(--divider); text-align: left
 th { background: var(--surface-2); font-weight: 700; }
 td .btn { margin: 2px 4px 2px 0; }
 .rumus { font-size: 14px; color: var(--muted); }
+.tabel-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.status-gear-cepat { margin-top: 20px; }
+.daftar-status-gear { display: grid; gap: 8px; }
+.baris-status-gear {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--divider);
+}
+.baris-status-gear:last-child { border-bottom: 0; }
+.nama-status-gear { overflow-wrap: anywhere; font-weight: 600; }
 .form-pengaturan { max-width: 520px; }
 #impor-json { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 

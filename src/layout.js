@@ -28,20 +28,8 @@ export function navbar(aktif) {
   const menu = el('nav', { kelas: 'menu-mobile', atribut: { hidden: '' } });
   menu.append(
     tautanHalaman('Katalog', 'katalog', aktif, 'menu-item'),
-    el('a', { teks: 'Cara Sewa', kelas: 'nav-link menu-item', atribut: { href: '#/katalog' } }),
     tautanHalaman('Dashboard', 'dashboard', aktif, 'menu-item'),
   );
-  menu.querySelectorAll('a').forEach((a) => {
-    if (a.textContent === 'Cara Sewa') {
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
-        menu.hidden = true;
-        menuBtn.setAttribute('aria-expanded', 'false');
-        const target = document.getElementById('cara-sewa');
-        if (target) target.scrollIntoView({ behavior: 'smooth' });
-      });
-    }
-  });
 
   menuBtn.addEventListener('click', () => {
     menu.hidden = !menu.hidden;
@@ -52,10 +40,7 @@ export function navbar(aktif) {
   const brand = el('a', { teks: 'MaruemGear', kelas: 'brand', atribut: { href: '#/katalog' } });
   const cart = tombol(`Keranjang (${jumlahCart()})`, { kelas: 'btn btn-sekunder btn-cart', klik: () => pergi('keranjang') });
   const desktop = el('nav', { kelas: 'nav-desktop' });
-  desktop.append(
-    tautanHalaman('Katalog', 'katalog', aktif),
-    el('a', { teks: 'Cara Sewa', kelas: 'nav-link', atribut: { href: '#/katalog' } }),
-  );
+  desktop.append(tautanHalaman('Katalog', 'katalog', aktif));
 
   header.append(menuBtn, brand, desktop, cart);
   if (aktif === 'katalog') {
@@ -161,7 +146,6 @@ export function hero() {
       kelas: 'btn btn-utama',
       klik: () => document.getElementById('katalog')?.scrollIntoView({ behavior: 'smooth' }),
     }),
-    el('div', { id: 'cara-sewa', kelas: 'cara-sewa', teks: 'Cara sewa: tentukan jadwal → pilih gear → kirim ringkasan lewat WhatsApp.' }),
   );
   section.append(copy, panelJadwal());
   return section;

@@ -24,7 +24,7 @@ const ui = { tab: 'ringkasan', filter: 'Semua', cari: '', formGear: null };
 const TAB = [
   { id: 'ringkasan', label: 'Ringkasan' },
   { id: 'pesanan', label: 'Pesanan' },
-  { id: 'gear', label: 'Gear' },
+  { id: 'gear', label: 'Kelola gear' },
   { id: 'pengaturan', label: 'Lainnya' },
 ];
 
@@ -56,6 +56,33 @@ function kartuAngka(judul, angka, keterangan, bahaya = false) {
   );
 }
 
+// Satu aksi manual admin untuk mengubah status sewa gear (SPEC.md §4.2 `kondisi`).
+async function toggleKondisiGear(g) {
+  const perawatan = g.kondisi === 'Perlu perawatan';
+  const dipakai = getOrders().some((o) =>
+    [STATUS.MENUNGGU, STATUS.TERBOOKING, STATUS.TERPINJAM].includes(o.status)
+    && o.items.some((i) => i.gearId === g.id));
+  const yakin = await konfirmasi({
+    judul: perawatan ? 'Tandai siap disewa?' : 'Tandai perlu perawatan?',
+    pesan: perawatan
+      ? `${g.nama} akan tampil lagi di katalog dan bisa disewa pada jadwal yang tersedia.`
+      : `${g.nama} akan dikeluarkan dari pilihan sewa.${dipakai ? ' Pesanan aktif yang sudah memakainya tetap berjalan.' : ''}`,
+    teksAksi: perawatan ? 'Tandai siap sewa' : 'Tandai perawatan',
+  });
+  if (!yakin) return;
+  ubahGear(g.id, { kondisi: perawatan ? 'Baik' : 'Perlu perawatan' });
+  toast(perawatan ? `${g.nama} siap disewa.` : `${g.nama} ditandai perlu perawatan.`);
+  render();
+}
+
+function badgeKondisi(g) {
+  const perawatan = g.kondisi === 'Perlu perawatan';
+  return el('span', {
+    kelas: `badge ${perawatan ? 'badge-warning' : 'badge-terbooking'}`,
+    teks: perawatan ? 'Perlu perawatan' : 'Siap disewa',
+  });
+}
+
 function ringkasan() {
   const orders = getOrders();
   const config = getConfig();
@@ -72,13 +99,33 @@ function ringkasan() {
   section.append(el('h2', { teks: 'Ringkasan', kelas: 'judul-bagian' }));
   const grid = el('div', { kelas: 'grid-ringkasan' });
   grid.append(
-    kartuAngka('Total gear', getGear().length, 'jenis terdaftar'),
+    kartuAngka('Total gear', getGear().length, `${getGear().filter((g) => g.kondisi === 'Perlu perawatan').length} perlu perawatan`),
     kartuAngka('Pesanan aktif', aktif.length, `${perluKonfirmasi} perlu konfirmasi`),
     kartuAngka('Estimasi pendapatan', rupiah(pendapatan), 'dari pesanan kembali'),
     kartuAngka('Ambil / kembali hari ini', `${ambilHariIni} / ${kembaliHariIni}`, 'berdasarkan jadwal'),
     kartuAngka('Terlambat', terlambat, 'lewat toleransi', true),
   );
   section.append(grid);
+
+  const statusBox = el('section', { kelas: 'box status-gear-cepat' });
+  statusBox.append(el('h2', { teks: 'Ubah status ketersediaan gear', kelas: 'judul-bagian' }));
+  statusBox.append(el('p', { kelas: 'rumus', teks: 'Tombol ini mengubah status manual. Sisa unit tetap dihitung otomatis dari jadwal dan pesanan aktif.' }));
+  const daftar = el('div', { kelas: 'daftar-status-gear' });
+  getGear().forEach((g) => {
+    const perawatan = g.kondisi === 'Perlu perawatan';
+    const baris = el('div', { kelas: 'baris-status-gear' });
+    baris.append(
+      el('span', { teks: g.nama, kelas: 'nama-status-gear' }),
+      badgeKondisi(g),
+      tombol(perawatan ? 'Siap sewa' : 'Perawatan', {
+        kelas: perawatan ? 'btn btn-utama btn-kecil' : 'btn btn-sekunder btn-kecil',
+        klik: () => toggleKondisiGear(g),
+      }),
+    );
+    daftar.append(baris);
+  });
+  statusBox.append(daftar);
+  section.append(statusBox);
   return section;
 }
 
@@ -162,7 +209,9 @@ function daftarPesanan() {
     tbody.append(tr);
   });
   tabel.append(tbody);
-  section.append(tabel);
+  const wadahTabel = el('div', { kelas: 'tabel-scroll' });
+  wadahTabel.append(tabel);
+  section.append(wadahTabel);
   return section;
 }
 
@@ -285,7 +334,7 @@ function formGearDialog(gear) {
     bidang('Kategori', kategori, { wajib: true, id: 'gear-kategori' }),
     buat('Harga per hari (Rp)', 'hargaPerHari', 'number'),
     buat('Jumlah unit', 'jumlahUnit', 'number'),
-    bidang('Kondisi', kondisi, { wajib: true, id: 'gear-kondisi' }),
+    bidang('Kondisi / status sewa', kondisi, { wajib: true, id: 'gear-kondisi' }),
     buat('Deskripsi', 'deskripsi', 'text', false),
     buat('Gambar (path lokal)', 'imageUrl', 'text', false),
     areaError,
@@ -342,23 +391,31 @@ function daftarGearSection() {
   aksiWrap.append(labelImpor, fileImpor);
   section.append(aksiWrap);
 
+  section.append(el('p', { kelas: 'rumus', teks: 'Status manual menentukan apakah gear bisa disewa. Sisa unit tetap dihitung otomatis dari jadwal dan pesanan aktif.' }));
   const tabel = el('table', { kelas: 'tabel-gear' });
   const head = el('tr');
-  ['Nama', 'Kategori', 'Harga/hari', 'Unit', 'Kondisi', 'Aksi'].forEach((t) => head.append(el('th', { teks: t })));
+  ['Nama', 'Kategori', 'Harga/hari', 'Unit', 'Status sewa', 'Aksi'].forEach((t) => head.append(el('th', { teks: t })));
   const thead = el('thead'); thead.append(head); tabel.append(thead);
   const tbody = el('tbody');
   gear.forEach((g) => {
     const tr = el('tr');
+    const perawatan = g.kondisi === 'Perlu perawatan';
+    const dipakai = orders.some((o) => [STATUS.MENUNGGU, STATUS.TERBOOKING, STATUS.TERPINJAM].includes(o.status) && o.items.some((i) => i.gearId === g.id));
+    const statusCell = el('td');
+    statusCell.append(badgeKondisi(g));
     tr.append(
       el('td', { teks: g.nama }), el('td', { teks: g.kategori }),
       el('td', { teks: rupiah(g.hargaPerHari) }), el('td', { teks: String(g.jumlahUnit) }),
-      el('td', { teks: g.kondisi }),
+      statusCell,
     );
     const aksi = el('td');
     aksi.append(
+      tombol(perawatan ? 'Tandai siap sewa' : 'Tandai perawatan', {
+        kelas: perawatan ? 'btn btn-utama btn-kecil' : 'btn btn-sekunder btn-kecil',
+        klik: () => toggleKondisiGear(g),
+      }),
       tombol('Edit', { kelas: 'btn btn-sekunder btn-kecil', klik: () => formGearDialog(g) }),
       tombol('Hapus', { kelas: 'btn btn-bahaya btn-kecil', klik: async () => {
-        const dipakai = orders.some((o) => [STATUS.MENUNGGU, STATUS.TERBOOKING, STATUS.TERPINJAM].includes(o.status) && o.items.some((i) => i.gearId === g.id));
         const yakin = await konfirmasi({
           judul: 'Hapus gear?',
           pesan: dipakai ? `${g.nama} masih dipakai pesanan aktif dan tidak bisa dihapus.` : `${g.nama} akan dihapus dari katalog.`,
@@ -374,7 +431,9 @@ function daftarGearSection() {
     tbody.append(tr);
   });
   tabel.append(tbody);
-  section.append(tabel);
+  const wadahTabel = el('div', { kelas: 'tabel-scroll' });
+  wadahTabel.append(tabel);
+  section.append(wadahTabel);
   return section;
 }
 
