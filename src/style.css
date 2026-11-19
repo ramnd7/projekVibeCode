@@ -217,12 +217,13 @@ td .btn { margin: 2px 4px 2px 0; }
 .status-gear-cepat { margin-top: 20px; }
 .daftar-status-gear { display: grid; gap: 8px; }
 .baris-status-gear {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  display: flex; flex-wrap: wrap;
   gap: 8px; align-items: center;
   padding: 8px 0; border-bottom: 1px solid var(--divider);
 }
 .baris-status-gear:last-child { border-bottom: 0; }
-.nama-status-gear { overflow-wrap: anywhere; font-weight: 600; }
+.nama-status-gear { flex: 1 1 160px; overflow-wrap: anywhere; font-weight: 600; }
+.unit-count { min-width: 62px; text-align: right; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .form-pengaturan { max-width: 520px; }
 #impor-json { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 

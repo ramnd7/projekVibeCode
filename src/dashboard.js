@@ -83,6 +83,33 @@ function badgeKondisi(g) {
   });
 }
 
+// Tambah/kurangi unit gear. Stok tidak boleh lebih rendah dari unit yang
+// sedang dipakai pesanan Menunggu/Terbooking/Terpinjam.
+async function ubahUnitGear(g, delta) {
+  const dipakaiAktif = getOrders()
+    .filter((o) => [STATUS.MENUNGGU, STATUS.TERBOOKING, STATUS.TERPINJAM].includes(o.status))
+    .flatMap((o) => o.items || [])
+    .filter((i) => i.gearId === g.id)
+    .reduce((n, i) => n + i.jumlah, 0);
+  const baru = g.jumlahUnit + delta;
+  if (!Number.isInteger(baru) || baru < 0) { toast('Jumlah unit tidak valid.'); return; }
+  if (baru < dipakaiAktif) {
+    toast(`Tidak bisa kurang dari ${dipakaiAktif} unit yang dipakai pesanan aktif.`);
+    return;
+  }
+  if (delta < 0) {
+    const yakin = await konfirmasi({
+      judul: 'Kurangi unit gear?',
+      pesan: `${g.nama} dari ${g.jumlahUnit} menjadi ${baru} unit.${dipakaiAktif ? ` Minimal ${dipakaiAktif} unit masih dipakai pesanan aktif.` : ''}`,
+      teksAksi: 'Kurangi unit',
+    });
+    if (!yakin) return;
+  }
+  ubahGear(g.id, { jumlahUnit: baru });
+  toast(`${g.nama}: ${baru} unit.`);
+  render();
+}
+
 function ringkasan() {
   const orders = getOrders();
   const config = getConfig();
@@ -108,8 +135,11 @@ function ringkasan() {
   section.append(grid);
 
   const statusBox = el('section', { kelas: 'box status-gear-cepat' });
-  statusBox.append(el('h2', { teks: 'Ubah status ketersediaan gear', kelas: 'judul-bagian' }));
-  statusBox.append(el('p', { kelas: 'rumus', teks: 'Tombol ini mengubah status manual. Sisa unit tetap dihitung otomatis dari jadwal dan pesanan aktif.' }));
+  statusBox.append(el('div', { kelas: 'dialog-header' },
+    el('h2', { teks: 'Kelola item & status gear', kelas: 'judul-bagian' }),
+    tombol('+ Tambah gear', { kelas: 'btn btn-utama btn-kecil', klik: () => formGearDialog(null) }),
+  ));
+  statusBox.append(el('p', { kelas: 'rumus', teks: 'Tambah gear baru, ubah jumlah unit, atau ganti status manual. Sisa unit tetap dihitung otomatis dari jadwal dan pesanan aktif.' }));
   const daftar = el('div', { kelas: 'daftar-status-gear' });
   getGear().forEach((g) => {
     const perawatan = g.kondisi === 'Perlu perawatan';
@@ -117,6 +147,9 @@ function ringkasan() {
     baris.append(
       el('span', { teks: g.nama, kelas: 'nama-status-gear' }),
       badgeKondisi(g),
+      el('span', { teks: `${g.jumlahUnit} unit`, kelas: 'unit-count' }),
+      tombol('−', { kelas: 'btn btn-kecil btn-qty', atribut: { 'aria-label': `Kurangi unit ${g.nama}` }, klik: () => ubahUnitGear(g, -1) }),
+      tombol('+', { kelas: 'btn btn-kecil btn-qty', atribut: { 'aria-label': `Tambah unit ${g.nama}` }, klik: () => ubahUnitGear(g, 1) }),
       tombol(perawatan ? 'Siap sewa' : 'Perawatan', {
         kelas: perawatan ? 'btn btn-utama btn-kecil' : 'btn btn-sekunder btn-kecil',
         klik: () => toggleKondisiGear(g),
@@ -410,6 +443,8 @@ function daftarGearSection() {
     );
     const aksi = el('td');
     aksi.append(
+      tombol('−', { kelas: 'btn btn-kecil btn-qty', atribut: { 'aria-label': `Kurangi unit ${g.nama}` }, klik: () => ubahUnitGear(g, -1) }),
+      tombol('+', { kelas: 'btn btn-kecil btn-qty', atribut: { 'aria-label': `Tambah unit ${g.nama}` }, klik: () => ubahUnitGear(g, 1) }),
       tombol(perawatan ? 'Tandai siap sewa' : 'Tandai perawatan', {
         kelas: perawatan ? 'btn btn-utama btn-kecil' : 'btn btn-sekunder btn-kecil',
         klik: () => toggleKondisiGear(g),
